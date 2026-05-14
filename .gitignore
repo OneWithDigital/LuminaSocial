@@ -1,0 +1,33 @@
+# Environment
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Storage (large binary outputs)
+storage/outputs/variant_a/*.mp4
+storage/outputs/variant_b/*.mp4
+storage/assets/*.mp4
+storage/assets/*.mov
+
+# Docker
+*.log
+
+# IDE
+.DS_Store
+.vscode/
+.idea/

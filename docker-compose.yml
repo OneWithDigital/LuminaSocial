@@ -1,0 +1,81 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lumina_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lumina}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lumina_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-luminasocial}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./apps/api/db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lumina} -d ${POSTGRES_DB:-luminasocial}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: lumina_api
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/api:/app
+      - ./storage:/storage
+      - ./brand_guidelines.md:/app/brand_guidelines.md:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  dashboard:
+    build:
+      context: ./apps/dashboard
+      dockerfile: Dockerfile
+    container_name: lumina_dashboard
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./apps/dashboard/src:/app/src
+    depends_on:
+      - api
+
+  trend_worker:
+    build:
+      context: ./workers/trend_ingestion
+      dockerfile: Dockerfile
+    container_name: lumina_trend_worker
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./workers/trend_ingestion:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  analytics_worker:
+    build:
+      context: ./workers/analytics_loop
+      dockerfile: Dockerfile
+    container_name: lumina_analytics_worker
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./workers/analytics_loop:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
