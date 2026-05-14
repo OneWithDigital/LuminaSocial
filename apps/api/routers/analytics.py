@@ -22,6 +22,15 @@ class AnalyticsUpsert(BaseModel):
     raw_payload: Optional[dict] = None
 
 
+@router.get("/lessons/latest")
+async def get_latest_lessons(limit: int = 10, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        text("SELECT * FROM lessons_learned ORDER BY created_at DESC LIMIT :limit"),
+        {"limit": limit},
+    )
+    return [dict(row._mapping) for row in result.fetchall()]
+
+
 @router.get("/{post_id}")
 async def get_analytics(post_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
@@ -30,7 +39,7 @@ async def get_analytics(post_id: str, db: AsyncSession = Depends(get_db)):
     )
     rows = result.fetchall()
     if not rows:
-        raise HTTPException(status_code=404, detail="No analytics found for this post")
+        return []
     return [dict(row._mapping) for row in rows]
 
 
@@ -63,12 +72,3 @@ async def record_analytics(body: AnalyticsUpsert, db: AsyncSession = Depends(get
     )
     await db.commit()
     return dict(result.fetchone()._mapping)
-
-
-@router.get("/lessons/latest")
-async def get_latest_lessons(limit: int = 10, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        text("SELECT * FROM lessons_learned ORDER BY created_at DESC LIMIT :limit"),
-        {"limit": limit},
-    )
-    return [dict(row._mapping) for row in result.fetchall()]

@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
+from config import get_settings
 from routers import posts, trends, analytics
 
 app = FastAPI(
@@ -20,6 +22,10 @@ app.add_middleware(
 app.include_router(posts.router, prefix="/posts", tags=["posts"])
 app.include_router(trends.router, prefix="/trends", tags=["trends"])
 app.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
+
+# Serve generated video files so the dashboard can embed them
+cfg = get_settings()
+app.mount("/storage", StaticFiles(directory=cfg.storage_base_path), name="storage")
 
 
 @app.get("/health")

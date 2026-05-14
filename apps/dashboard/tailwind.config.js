@@ -1,0 +1,15 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ["./src/**/*.{js,ts,jsx,tsx}"],
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          purple: "#a855f7",
+          dark: "#09090b",
+        },
+      },
+    },
+  },
+  plugins: [],
+};

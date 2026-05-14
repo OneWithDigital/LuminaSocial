@@ -206,6 +206,65 @@ async def generate_post_variants(
     return dict(updated.fetchone()._mapping)
 
 
+@router.post("/{post_id}/recheck")
+async def recheck_post_brand(post_id: str, db: AsyncSession = Depends(get_db)):
+    """
+    Re-runs the brand guardrail on the existing caption of a post without
+    regenerating video variants.
+
+    Updates brand_alignment_score, guardrail_passed, guardrail_notes, and
+    guardrail_checked_at. If the score passes AND the post is still in Draft
+    AND variant_a_path is already set, advances status to Pending.
+    """
+    result = await db.execute(
+        text("SELECT * FROM posts WHERE id = :id"),
+        {"id": post_id},
+    )
+    row = result.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Post not found")
+    post = dict(row._mapping)
+
+    caption = post.get("caption_draft") or post.get("raw_prompt") or ""
+
+    from modules.guardrail.brand_check import check_brand_alignment
+    guardrail = await check_brand_alignment(
+        caption=caption,
+        visual_style="Variant A: fast/aggressive | Variant B: cinematic/minimal",
+        platform=post["platform_target"],
+    )
+
+    new_status = post["status"]
+    if (
+        guardrail.passed
+        and post["status"] == "Draft"
+        and post.get("variant_a_path") is not None
+    ):
+        new_status = "Pending"
+
+    updated = await db.execute(
+        text("""
+            UPDATE posts SET
+                brand_alignment_score  = :brand_score,
+                guardrail_passed       = :guardrail_passed,
+                guardrail_notes        = :guardrail_notes,
+                guardrail_checked_at   = NOW(),
+                status                 = :new_status::post_status
+            WHERE id = :post_id
+            RETURNING *
+        """),
+        {
+            "post_id": post_id,
+            "brand_score": guardrail.score,
+            "guardrail_passed": guardrail.passed,
+            "guardrail_notes": guardrail.notes,
+            "new_status": new_status,
+        },
+    )
+    await db.commit()
+    return dict(updated.fetchone()._mapping)
+
+
 @router.patch("/{post_id}/approve")
 async def approve_post(
     post_id: str, body: PostApprove, db: AsyncSession = Depends(get_db)
