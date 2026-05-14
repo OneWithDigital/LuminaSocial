@@ -1,33 +1,63 @@
-# Environment
+# ─── Environment variables ───────────────────────────────────────
 .env
 .env.local
+.env.*.local
+.env.production
 
-# Python
+# ─── Python ──────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
+*.pyd
+
+# Virtual environments (any common name)
 .venv/
 venv/
+env/
+ENV/
+virtualenv/
+.python-version
+
+# Build / packaging
 *.egg-info/
 dist/
 build/
+.eggs/
+pip-wheel-metadata/
 
-# Node
+# ─── Node / Next.js ──────────────────────────────────────────────
 node_modules/
 .next/
 out/
 *.tsbuildinfo
+.npm/
 
-# Storage (large binary outputs)
-storage/outputs/variant_a/*.mp4
-storage/outputs/variant_b/*.mp4
-storage/assets/*.mp4
-storage/assets/*.mov
+# ─── Video files & temp output folders ───────────────────────────
+# Raw video formats
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.flv
 
-# Docker
+# Temporary processing directories
+tmp/
+temp/
+.tmp/
+storage/outputs/
+storage/tmp/
+
+# Keep the placeholder files that mark the output dirs in git
+!storage/outputs/variant_a/.gitkeep
+!storage/outputs/variant_b/.gitkeep
+!storage/assets/.gitkeep
+
+# ─── Docker ──────────────────────────────────────────────────────
 *.log
 
-# IDE
+# ─── IDE & OS ────────────────────────────────────────────────────
 .DS_Store
 .vscode/
 .idea/
+Thumbs.db
