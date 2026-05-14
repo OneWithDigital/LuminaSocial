@@ -79,6 +79,43 @@ export interface PostCreatePayload {
   caption_draft?: string;
 }
 
+export interface UserProfile {
+  id: number;
+  display_name: string;
+  avatar_url: string | null;
+  website_url: string | null;
+  bio: string | null;
+  brand_voice: string | null;
+  brand_colors: string[];
+  brand_keywords: string[];
+  connected_accounts: Record<string, { connected: boolean; handle?: string }>;
+  updated_at: string;
+}
+
+export interface ProfileUpdatePayload {
+  display_name?: string;
+  avatar_url?: string;
+  website_url?: string;
+  bio?: string;
+  brand_voice?: string;
+  brand_colors?: string[];
+  brand_keywords?: string[];
+  connected_accounts?: Record<string, { connected: boolean; handle?: string }>;
+}
+
+export interface AIDraftPayload {
+  ideas: string;
+  platform?: string;
+  brand_voice?: string;
+}
+
+export interface AIDraftResult {
+  title: string;
+  hook: string;
+  body: string;
+  caption: string;
+}
+
 // ─── Fetch wrapper ────────────────────────────────────────────────────────────
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -153,5 +190,27 @@ export const api = {
   analytics: {
     get: (postId: string) => apiFetch<AnalyticsRow[]>(`/analytics/${postId}`),
     lessons: (limit = 20) => apiFetch<LessonLearned[]>(`/analytics/lessons/latest?limit=${limit}`),
+  },
+
+  profile: {
+    get: () => apiFetch<UserProfile>("/profile/"),
+
+    update: (payload: ProfileUpdatePayload) =>
+      apiFetch<UserProfile>("/profile/", {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      }),
+
+    scrape: (url: string) =>
+      apiFetch<{ brand_voice: string; brand_keywords: string[]; bio: string }>("/profile/scrape", {
+        method: "POST",
+        body: JSON.stringify({ url }),
+      }),
+
+    aiDraft: (payload: AIDraftPayload) =>
+      apiFetch<AIDraftResult>("/profile/ai-draft", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
   },
 };

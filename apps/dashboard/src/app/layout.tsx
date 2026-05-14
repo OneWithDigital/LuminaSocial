@@ -32,12 +32,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </Link>
             ))}
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-3">
             <Link
               href="/posts/new"
               className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors"
             >
               + New Post
+            </Link>
+            <Link
+              href="/profile"
+              className="w-8 h-8 rounded-full bg-gray-800 border border-gray-700 hover:border-purple-600 transition-colors flex items-center justify-center text-sm"
+              title="Profile & Brand"
+            >
+              👤
             </Link>
           </div>
         </nav>
