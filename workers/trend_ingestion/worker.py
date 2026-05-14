@@ -5,33 +5,27 @@ Polls SerpApi on a configurable interval and inserts new trends into the DB.
 
 import asyncio
 import json
-import os
 import logging
 from datetime import datetime, timezone
 
 import asyncpg
 import httpx
-from dotenv import load_dotenv
+from config import get_settings
 
-load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [trend_worker] %(message)s")
 log = logging.getLogger(__name__)
 
-DATABASE_URL = os.getenv("DATABASE_URL", "")
-SERPAPI_KEY = os.getenv("SERPAPI_API_KEY", "")
-REGION = os.getenv("TREND_REGION", "US")
-INTERVAL_MINUTES = int(os.getenv("TREND_FETCH_INTERVAL_MINUTES", "60"))
-
 
 async def fetch_trends() -> list[dict]:
-    if not SERPAPI_KEY:
+    cfg = get_settings()
+    if not cfg.serpapi_api_key:
         log.warning("SERPAPI_API_KEY not set — skipping fetch")
         return []
 
     params = {
         "engine": "google_trends_trending_now",
-        "geo": REGION,
-        "api_key": SERPAPI_KEY,
+        "geo": cfg.trend_region,
+        "api_key": cfg.serpapi_api_key,
     }
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.get("https://serpapi.com/search.json", params=params)
@@ -44,7 +38,7 @@ async def fetch_trends() -> list[dict]:
             "keyword": item.get("query", ""),
             "source": "serpapi",
             "source_url": item.get("link", ""),
-            "region": REGION,
+            "region": cfg.trend_region,
             "search_volume": item.get("search_volume"),
             "related_topics": json.dumps(item.get("related_queries", [])),
             "raw_payload": json.dumps(item),
@@ -74,7 +68,8 @@ async def persist_trends(conn, trends: list[dict]) -> int:
 
 
 async def run():
-    conn = await asyncpg.connect(DATABASE_URL)
+    cfg = get_settings()
+    conn = await asyncpg.connect(cfg.database_url)
     log.info("Connected to database. Starting trend ingestion loop.")
     try:
         while True:
@@ -84,7 +79,7 @@ async def run():
                 log.info("Fetched %d trends, inserted %d new.", len(trends), n)
             except Exception as exc:
                 log.error("Fetch error: %s", exc)
-            await asyncio.sleep(INTERVAL_MINUTES * 60)
+            await asyncio.sleep(cfg.trend_fetch_interval_minutes * 60)
     finally:
         await conn.close()
 

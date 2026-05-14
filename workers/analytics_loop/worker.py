@@ -8,24 +8,15 @@ For every Published post with both A/B analytics rows, this worker:
 
 import asyncio
 import json
-import os
 import logging
 import re
 
 import asyncpg
 import anthropic
-from dotenv import load_dotenv
+from config import get_settings
 
-load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [analytics_worker] %(message)s")
 log = logging.getLogger(__name__)
-
-DATABASE_URL = os.getenv("DATABASE_URL", "")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
-POLL_INTERVAL_MINUTES = int(os.getenv("ANALYTICS_POLL_INTERVAL_MINUTES", "360"))
-VIRAL_THRESHOLD = int(os.getenv("VIRAL_THRESHOLD_VIEWS", "10000"))
-MID_THRESHOLD = int(os.getenv("MID_THRESHOLD_VIEWS", "1000"))
 
 
 async def get_unprocessed_posts(conn) -> list[dict]:
@@ -53,10 +44,12 @@ async def get_unprocessed_posts(conn) -> list[dict]:
 
 
 async def generate_lesson(post: dict) -> dict:
-    if not ANTHROPIC_API_KEY:
+    cfg = get_settings()
+    if not cfg.anthropic_api_key:
+        log.warning("ANTHROPIC_API_KEY not set — skipping lesson generation")
         return {"summary": "Anthropic key not configured.", "recommended_bias": {}}
 
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    client = anthropic.Anthropic(api_key=cfg.anthropic_api_key)
     winner = "A" if post["a_rate"] >= post["b_rate"] else "B"
     winning_style = "fast_aggressive" if winner == "A" else "cinematic_minimal"
     delta = float(post["a_rate"]) - float(post["b_rate"])
@@ -77,7 +70,7 @@ SUMMARY: <text>
 BIAS: <json>"""
 
     msg = client.messages.create(
-        model=ANTHROPIC_MODEL,
+        model=cfg.anthropic_model,
         max_tokens=512,
         messages=[{"role": "user", "content": prompt}],
     )
@@ -116,7 +109,8 @@ async def process_post(conn, post: dict):
 
 
 async def run():
-    conn = await asyncpg.connect(DATABASE_URL)
+    cfg = get_settings()
+    conn = await asyncpg.connect(cfg.database_url)
     log.info("Connected. Starting analytics feedback loop.")
     try:
         while True:
@@ -127,7 +121,7 @@ async def run():
                     await process_post(conn, post)
             except Exception as exc:
                 log.error("Loop error: %s", exc)
-            await asyncio.sleep(POLL_INTERVAL_MINUTES * 60)
+            await asyncio.sleep(cfg.analytics_poll_interval_minutes * 60)
     finally:
         await conn.close()
 
