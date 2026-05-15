@@ -50,6 +50,16 @@
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
+/* Service box hover micro-interaction */
+.service-box {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: default;
+}
+.service-box:hover {
+  transform: scale(1.015);
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3), 0 8px 32px rgba(99, 102, 241, 0.1);
+}
+
 /* Glow pulse for Brain Update */
 @keyframes glow-pulse {
   0%, 100% { box-shadow: 0 0 8px rgba(168, 85, 247, 0.3); }
