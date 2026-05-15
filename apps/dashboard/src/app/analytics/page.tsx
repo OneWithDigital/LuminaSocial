@@ -2,27 +2,24 @@
 
 import useSWR from "swr";
 import { api, LessonLearned } from "@/lib/api";
+import GlassCard from "@/components/GlassCard";
+import Sparkline from "@/components/Sparkline";
 import LessonsCard from "@/components/LessonsCard";
 import clsx from "clsx";
 
-const TIER_STYLES: Record<string, { bar: string; label: string; text: string }> = {
-  Viral: { bar: "bg-purple-500", label: "Viral",  text: "text-purple-400" },
-  Mid:   { bar: "bg-blue-500",   label: "Mid",    text: "text-blue-400"   },
-  Low:   { bar: "bg-gray-600",   label: "Low",    text: "text-gray-400"   },
-};
+function insightText(deltas: number[]): string {
+  if (deltas.length < 2) return "Not enough data yet — publish more A/B tests to see trends.";
+  const avg = deltas.reduce((a, b) => a + b, 0) / deltas.length;
+  const recent = deltas.slice(-3).reduce((a, b) => a + b, 0) / Math.min(3, deltas.length);
+  const trend = recent > avg + 0.02 ? "↑ Trending up" : recent < avg - 0.02 ? "↓ Trending down" : "→ Holding steady";
+  return `${trend} — avg ${avg > 0 ? "+" : ""}${(avg * 100).toFixed(1)}% engagement across ${deltas.length} tests.`;
+}
 
-function TierBar({ tier, count, total }: { tier: string; count: number; total: number }) {
-  const pct = total > 0 ? (count / total) * 100 : 0;
-  const style = TIER_STYLES[tier] ?? TIER_STYLES.Low;
-  return (
-    <div className="flex items-center gap-3">
-      <span className={clsx("text-xs font-medium w-10 shrink-0", style.text)}>{style.label}</span>
-      <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
-        <div className={clsx("h-full rounded-full", style.bar)} style={{ width: `${pct}%` }} />
-      </div>
-      <span className="text-xs text-gray-500 tabular-nums w-8 text-right">{count}</span>
-    </div>
-  );
+function styleInsightText(tally: Record<string, number>): string {
+  const sorted = Object.entries(tally).sort((a, b) => b[1] - a[1]);
+  if (!sorted.length) return "No winning styles identified yet.";
+  const [top] = sorted;
+  return `"${top[0].replace(/_/g, " ")}" is your strongest content style with ${top[1]} win${top[1] !== 1 ? "s" : ""}.`;
 }
 
 export default function AnalyticsPage() {
@@ -32,76 +29,103 @@ export default function AnalyticsPage() {
     { refreshInterval: 60_000 },
   );
 
-  // Tally winning styles from lessons
   const styleTally = lessons?.reduce<Record<string, number>>((acc, l) => {
     if (l.winning_style) acc[l.winning_style] = (acc[l.winning_style] ?? 0) + 1;
     return acc;
   }, {}) ?? {};
 
   const totalLessons = lessons?.length ?? 0;
-
-  // Compute average engagement delta
   const deltas = lessons?.map((l) => l.engagement_delta).filter((d): d is number => d != null) ?? [];
   const avgDelta = deltas.length > 0 ? deltas.reduce((a, b) => a + b, 0) / deltas.length : null;
 
+  const styleEntries = Object.entries(styleTally).sort((a, b) => b[1] - a[1]);
+  const maxStyle = styleEntries[0]?.[1] ?? 1;
+
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-100">Analytics</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Analytics</h1>
         <p className="text-sm text-gray-500 mt-0.5">Feedback loop insights from published A/B tests.</p>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <p className="text-xs text-gray-500 mb-1">Lessons Learned</p>
-          <p className="text-3xl font-bold text-gray-100">{totalLessons}</p>
-        </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <p className="text-xs text-gray-500 mb-1">Avg Engagement Delta</p>
-          <p className={clsx(
-            "text-3xl font-bold",
-            avgDelta == null ? "text-gray-600" :
-            avgDelta > 0 ? "text-green-400" : "text-red-400",
-          )}>
-            {avgDelta != null ? `${avgDelta > 0 ? "+" : ""}${(avgDelta * 100).toFixed(2)}%` : "—"}
-          </p>
-        </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <p className="text-xs text-gray-500 mb-3">Winning Styles</p>
-          <div className="space-y-2">
-            {[
-              { key: "fast_aggressive",  label: "Fast / Aggressive" },
-              { key: "cinematic_minimal", label: "Cinematic / Minimal" },
-            ].map(({ key, label }) => (
-              <div key={key} className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">{label}</span>
-                <span className="text-sm font-semibold text-gray-200">
-                  {styleTally[key] ?? 0}
-                </span>
-              </div>
-            ))}
+      {/* Stat cards row */}
+      <div className="bento-grid">
+        {/* Lessons Learned */}
+        <GlassCard className="flex flex-col gap-2">
+          <p className="text-xs text-gray-500">Lessons Learned</p>
+          <p className="text-3xl font-bold text-purple-400">{totalLessons}</p>
+          <p className="text-[11px] text-gray-600">from A/B tests</p>
+        </GlassCard>
+
+        {/* Avg Engagement Delta + Sparkline */}
+        <GlassCard className="bento-span-2 flex flex-col gap-3">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs text-gray-500">Avg Engagement Delta</p>
+              <p className={clsx(
+                "text-3xl font-bold mt-1",
+                avgDelta == null ? "text-gray-600" : avgDelta > 0 ? "text-green-400" : "text-red-400",
+              )}>
+                {avgDelta != null ? `${avgDelta > 0 ? "+" : ""}${(avgDelta * 100).toFixed(1)}%` : "—"}
+              </p>
+            </div>
+            <div className="w-32">
+              {deltas.length > 1 && <Sparkline data={deltas.map((d) => d * 100)} color="#22c55e" height={48} />}
+            </div>
           </div>
-        </div>
+          {/* AI Insight */}
+          <div className="bg-purple-950/40 border border-purple-700/30 rounded-xl px-3 py-2">
+            <p className="text-[10px] font-semibold text-purple-400 uppercase tracking-wider mb-0.5">✦ AI Insight</p>
+            <p className="text-xs text-gray-300">{insightText(deltas)}</p>
+          </div>
+        </GlassCard>
+
+        {/* Winning Styles */}
+        <GlassCard className="flex flex-col gap-3">
+          <p className="text-xs text-gray-500">Winning Styles</p>
+          {styleEntries.length === 0 ? (
+            <p className="text-xs text-gray-600 flex-1 flex items-center">No data yet.</p>
+          ) : (
+            <div className="space-y-2 flex-1">
+              {styleEntries.slice(0, 4).map(([style, count]) => (
+                <div key={style} className="flex items-center gap-2">
+                  <span className="text-[11px] text-gray-400 w-28 shrink-0 truncate">{style.replace(/_/g, " ")}</span>
+                  <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-purple-500 rounded-full" style={{ width: `${(count / maxStyle) * 100}%` }} />
+                  </div>
+                  <span className="text-[11px] text-gray-500 w-4 text-right">{count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="bg-blue-950/40 border border-blue-700/30 rounded-xl px-3 py-2">
+            <p className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider mb-0.5">✦ AI Insight</p>
+            <p className="text-xs text-gray-300">{styleInsightText(styleTally)}</p>
+          </div>
+        </GlassCard>
       </div>
 
       {/* Lessons feed */}
-      <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-        Latest Lessons
-      </h2>
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Latest Lessons</p>
 
-      {isLoading && <p className="text-gray-500 text-sm">Loading…</p>}
+        {isLoading && (
+          <div className="text-center py-10 text-gray-600 text-sm">Loading…</div>
+        )}
 
-      {!isLoading && totalLessons === 0 && (
-        <div className="text-center py-16 text-gray-600">
-          <p className="text-sm">No lessons yet. They appear after Published posts have A/B analytics data.</p>
+        {!isLoading && totalLessons === 0 && (
+          <GlassCard className="text-center py-10">
+            <p className="text-sm text-gray-600">
+              No lessons yet. They appear after published posts have A/B analytics data.
+            </p>
+          </GlassCard>
+        )}
+
+        <div className="space-y-3">
+          {lessons?.map((lesson) => (
+            <LessonsCard key={lesson.id} lesson={lesson} />
+          ))}
         </div>
-      )}
-
-      <div className="space-y-4">
-        {lessons?.map((lesson) => (
-          <LessonsCard key={lesson.id} lesson={lesson} />
-        ))}
       </div>
     </div>
   );
