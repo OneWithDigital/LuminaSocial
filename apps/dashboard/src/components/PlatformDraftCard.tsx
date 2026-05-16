@@ -6,6 +6,7 @@ import { PlatformDraft } from "@/lib/api";
 import clsx from "clsx";
 
 const PLATFORM_STYLE: Record<string, { bg: string; initials: string }> = {
+  facebook:       { bg: "from-blue-600 to-blue-800",    initials: "f"  },
   instagram:      { bg: "from-purple-600 to-pink-600",  initials: "IG" },
   tiktok:         { bg: "from-gray-800 to-gray-900",    initials: "TK" },
   linkedin:       { bg: "from-blue-700 to-blue-900",    initials: "in" },

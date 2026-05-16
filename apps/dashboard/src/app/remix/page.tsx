@@ -8,6 +8,7 @@ import PlatformDraftCard from "@/components/PlatformDraftCard";
 import clsx from "clsx";
 
 const ALL_PLATFORMS = [
+  { key: "facebook",       label: "Facebook",  initials: "f"  },
   { key: "instagram",      label: "Instagram", initials: "IG" },
   { key: "tiktok",         label: "TikTok",    initials: "TK" },
   { key: "linkedin",       label: "LinkedIn",  initials: "in" },

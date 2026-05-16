@@ -16,6 +16,13 @@ interface AccountState {
 
 const PLATFORMS = [
   {
+    key: "facebook",
+    label: "Facebook",
+    bg: "from-blue-600 to-blue-800",
+    text: "f",
+    description: "Pages, Groups & Reels",
+  },
+  {
     key: "instagram",
     label: "Instagram",
     bg: "from-purple-600 to-pink-600",

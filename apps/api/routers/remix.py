@@ -23,6 +23,14 @@ router = APIRouter()
 # ── Platform constraints injected into the Claude prompt ──────────────────────
 
 PLATFORM_RULES: dict[str, dict] = {
+    "facebook": {
+        "name": "Facebook",
+        "char_limit": 63206,
+        "body_limit": 500,
+        "tone": "conversational, community-focused, mix of informative and engaging",
+        "hashtags": "2–3 hashtags only — Facebook hashtags have limited reach",
+        "notes": "Optimal length is 40–80 words. Ask a question to drive comments. Works well with a friendly, approachable tone.",
+    },
     "twitter": {
         "name": "Twitter / X",
         "char_limit": 280,
