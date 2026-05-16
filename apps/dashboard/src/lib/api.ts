@@ -116,6 +116,25 @@ export interface AIDraftResult {
   caption: string;
 }
 
+export interface RemixRequest {
+  input_type: "text" | "url";
+  content: string;
+  platforms: string[];
+}
+
+export interface PlatformDraft {
+  platform: string;
+  platform_name: string;
+  body: string;
+  hashtags: string[];
+  char_limit: number;
+}
+
+export interface RemixBundle {
+  source_summary: string;
+  drafts: PlatformDraft[];
+}
+
 // ─── Fetch wrapper ────────────────────────────────────────────────────────────
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -190,6 +209,14 @@ export const api = {
   analytics: {
     get: (postId: string) => apiFetch<AnalyticsRow[]>(`/analytics/${postId}`),
     lessons: (limit = 20) => apiFetch<LessonLearned[]>(`/analytics/lessons/latest?limit=${limit}`),
+  },
+
+  remix: {
+    generate: (payload: RemixRequest) =>
+      apiFetch<RemixBundle>("/remix/generate", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
   },
 
   profile: {

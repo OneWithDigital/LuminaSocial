@@ -172,7 +172,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <Link
-              href="/posts/new"
+              href="/remix"
               className="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-sm font-semibold text-center transition-all shadow-lg shadow-purple-900/30 block"
             >
               Generate AI Edit
@@ -200,10 +200,10 @@ export default function DashboardPage() {
               {latestCaption ?? "Your next AI-generated caption will appear here. Hit the button below to start drafting with AI."}
             </div>
             <Link
-              href="/posts/new"
+              href="/remix"
               className="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-sm font-semibold text-center transition-all shadow-lg shadow-purple-900/30 block"
             >
-              Write New Post
+              Open Remixer
             </Link>
           </div>
         </GlassCard>

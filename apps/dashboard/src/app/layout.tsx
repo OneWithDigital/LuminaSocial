@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LayoutDashboard, TrendingUp, BarChart3, Link2, User, HelpCircle, Zap } from "lucide-react";
+import { LayoutDashboard, TrendingUp, BarChart3, Link2, User, HelpCircle, Zap, Wand2 } from "lucide-react";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,7 +9,8 @@ export const metadata: Metadata = {
 };
 
 const NAV_TOP = [
-  { href: "/",            label: "Dashboard",   Icon: LayoutDashboard },
+  { href: "/",      label: "Dashboard", Icon: LayoutDashboard },
+  { href: "/remix", label: "Remix",     Icon: Wand2 },
 ];
 
 const NAV_MID = [

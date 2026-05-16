@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from config import get_settings
-from routers import posts, trends, analytics, profile
+from routers import posts, trends, analytics, profile, remix
 
 app = FastAPI(
     title="LuminaSocial Ultra API",
@@ -23,6 +23,7 @@ app.include_router(posts.router, prefix="/posts", tags=["posts"])
 app.include_router(trends.router, prefix="/trends", tags=["trends"])
 app.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 app.include_router(profile.router, prefix="/profile", tags=["profile"])
+app.include_router(remix.router,   prefix="/remix",   tags=["remix"])
 
 # Serve generated video files so the dashboard can embed them
 cfg = get_settings()
