@@ -209,4 +209,18 @@ async def generate_remix(
         if d.get("platform") in PLATFORM_RULES
     ]
 
+    # Log usage for credits tracking
+    await db.execute(text("INSERT INTO remix_usage (id) VALUES (uuid_generate_v4())"))
+    await db.commit()
+
     return RemixBundle(source_summary=data.get("source_summary", ""), drafts=drafts)
+
+
+@router.get("/usage")
+async def get_usage(db: AsyncSession = Depends(get_db)):
+    """Return remix count for the current calendar month."""
+    result = await db.execute(text("""
+        SELECT COUNT(*) AS count FROM remix_usage
+        WHERE date_trunc('month', created_at) = date_trunc('month', NOW())
+    """))
+    return {"month_count": result.scalar()}

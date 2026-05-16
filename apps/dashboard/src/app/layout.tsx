@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LayoutDashboard, TrendingUp, BarChart3, Link2, User, HelpCircle, Zap, Wand2 } from "lucide-react";
+import { LayoutDashboard, TrendingUp, BarChart3, Link2, User, HelpCircle, Zap, Wand2, CalendarDays, Sparkles } from "lucide-react";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,9 +14,11 @@ const NAV_TOP = [
 ];
 
 const NAV_MID = [
+  { href: "/calendar",    label: "Calendar",    Icon: CalendarDays },
   { href: "/trends",      label: "Trends",      Icon: TrendingUp },
   { href: "/analytics",   label: "Analytics",   Icon: BarChart3 },
-  { href: "/connections", label: "Connections",  Icon: Link2 },
+  { href: "/coach",       label: "AI Coach",    Icon: Sparkles },
+  { href: "/connections", label: "Connections", Icon: Link2 },
 ];
 
 function NavLink({ href, label, Icon }: { href: string; label: string; Icon: React.ComponentType<{ className?: string }> }) {

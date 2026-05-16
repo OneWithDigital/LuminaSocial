@@ -3,7 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { Film, FileText, CalendarDays, Upload, TrendingUp, Zap, Radio, Award } from "lucide-react";
+import { Film, FileText, CalendarDays, Upload, TrendingUp, Wand2, Radio, Award } from "lucide-react";
 import { api, Post, PostStatus, Platform, LessonLearned } from "@/lib/api";
 import GlassCard from "@/components/GlassCard";
 import PostCard from "@/components/PostCard";
@@ -68,6 +68,12 @@ export default function DashboardPage() {
     { refreshInterval: 60_000 },
   );
 
+  const { data: usageData } = useSWR<{ month_count: number }>(
+    "remix-usage",
+    () => fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/remix/usage`).then((r) => r.json()),
+    { refreshInterval: 60_000 },
+  );
+
   const tally = (allPosts ?? []).reduce<Record<string, number>>((acc, p) => {
     acc[p.status] = (acc[p.status] ?? 0) + 1;
     return acc;
@@ -128,11 +134,11 @@ export default function DashboardPage() {
 
         <GlassCard className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-500">AI Hours Saved</p>
-            <Zap className="w-4 h-4 text-amber-400" />
+            <p className="text-xs text-gray-500">Remixes This Month</p>
+            <Wand2 className="w-4 h-4 text-amber-400" />
           </div>
-          <p className="text-3xl font-bold text-amber-400">~{aiHoursSaved}h</p>
-          <p className="text-[11px] text-gray-600">all time</p>
+          <p className="text-3xl font-bold text-amber-400">{usageData?.month_count ?? 0}</p>
+          <p className="text-[11px] text-gray-600">AI content generated</p>
         </GlassCard>
 
         <GlassCard className="flex flex-col gap-2">
