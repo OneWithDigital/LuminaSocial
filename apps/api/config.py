@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     guardrail_min_score: float = 70.0
     guardrail_auto_reject_below: float = 40.0
 
+    # ── Shopify ───────────────────────────────────────────────────────
+    shopify_store_url: str = ""          # e.g. mystore.myshopify.com
+    shopify_access_token: str = ""       # Admin API access token
+    shopify_api_version: str = "2024-10"
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -4,7 +4,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import { api, UserProfile } from "@/lib/api";
 import GlassCard from "@/components/GlassCard";
-import { Plus, RefreshCw, Wifi, WifiOff, Link2 } from "lucide-react";
+import { Plus, RefreshCw, Wifi, WifiOff, Link2, ShoppingBag, CheckCircle2, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 
 interface AccountState {
@@ -85,8 +85,23 @@ function ScopeToggle({
   );
 }
 
+interface ShopifyStatus {
+  connected: boolean;
+  shop_name?: string;
+  shop_domain?: string;
+  plan?: string;
+  currency?: string;
+}
+
 export default function ConnectionsPage() {
   const { data: profile, mutate } = useSWR<UserProfile>("profile", api.profile.get);
+  const { data: shopifyStatus, error: shopifyError } = useSWR<ShopifyStatus>(
+    "shopify-status",
+    () => fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/shopify/status`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .catch(() => ({ connected: false })),
+    { revalidateOnFocus: false },
+  );
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
 
@@ -228,6 +243,54 @@ export default function ConnectionsPage() {
           </button>
         </GlassCard>
       )}
+
+      {/* Shopify integration */}
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          Data Sources
+        </p>
+        <GlassCard className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center shrink-0">
+              <ShoppingBag className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-semibold text-white">Shopify</p>
+                {shopifyStatus?.connected ? (
+                  <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" title="Connected" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-yellow-500 shrink-0" title="Not configured" />
+                )}
+              </div>
+              <p className="text-xs text-gray-500 truncate">
+                {shopifyStatus?.connected
+                  ? `${shopifyStatus.shop_name} · ${shopifyStatus.currency}`
+                  : "Connect your store to generate product posts"}
+              </p>
+            </div>
+          </div>
+
+          {shopifyStatus?.connected ? (
+            <div className="bg-white/5 rounded-xl px-3 py-2 space-y-1 text-xs text-gray-400">
+              <p><span className="text-gray-600">Domain</span> &nbsp;{shopifyStatus.shop_domain}</p>
+              <p><span className="text-gray-600">Plan</span> &nbsp;&nbsp;&nbsp;{shopifyStatus.plan}</p>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-600 bg-white/5 rounded-xl px-3 py-2">
+              Add <code className="text-gray-500">SHOPIFY_STORE_URL</code> and{" "}
+              <code className="text-gray-500">SHOPIFY_ACCESS_TOKEN</code> to your{" "}
+              <code className="text-gray-500">.env</code> file to enable Shopify product remixing.
+            </p>
+          )}
+
+          <p className="text-xs text-gray-600">
+            Once connected, use{" "}
+            <span className="text-purple-400">shopify_remix_product</span> in the MCP server or the
+            Remix page to turn any product into platform-native social posts.
+          </p>
+        </GlassCard>
+      </div>
 
       {/* Add channel modal */}
       {showAdd && (

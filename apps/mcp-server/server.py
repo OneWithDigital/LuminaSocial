@@ -6,15 +6,18 @@ Exposes your LuminaSocial content pipeline as tools for Claude Desktop
 and any MCP-compatible AI assistant.
 
 Tools available:
-  remix_content       — Generate multi-platform drafts from any idea/text
-  remix_url           — Fetch a URL and remix it into platform drafts
-  list_posts          — Browse your content queue with filters
-  approve_post        — Approve a post (optionally with a schedule time)
-  reject_post         — Reject a post
-  get_upcoming        — See what's scheduled next
-  get_trends          — View trending topics for content inspiration
-  run_ai_coach        — Get Claude-powered improvement suggestions
-  get_dashboard_stats — Quick pipeline overview
+  remix_content         — Generate multi-platform drafts from any idea/text
+  remix_url             — Fetch a URL and remix it into platform drafts
+  list_posts            — Browse your content queue with filters
+  approve_post          — Approve a post (optionally with a schedule time)
+  reject_post           — Reject a post
+  get_upcoming          — See what's scheduled next
+  get_trends            — View trending topics for content inspiration
+  run_ai_coach          — Get Claude-powered improvement suggestions
+  get_dashboard_stats   — Quick pipeline overview
+  shopify_status        — Check Shopify store connection
+  shopify_list_products — List products from your Shopify store
+  shopify_remix_product — Generate social posts for a Shopify product
 
 Setup: set LUMINASOCIAL_API_URL env var if your API runs on a port other
 than 8000. Default: http://localhost:8000
@@ -291,6 +294,107 @@ async def get_dashboard_stats() -> str:
         f"Top platform:       {top}",
     ]
     return "\n".join(lines)
+
+
+# ── Shopify Tools ──────────────────────────────────────────────────────────────
+
+@mcp.tool()
+async def shopify_status() -> str:
+    """
+    Check whether your Shopify store is connected and return basic shop info.
+    Configure the connection by setting SHOPIFY_STORE_URL and
+    SHOPIFY_ACCESS_TOKEN in the LuminaSocial API .env file.
+    """
+    try:
+        data = await _get("/shopify/status")
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 503:
+            return "Shopify not configured. Add SHOPIFY_STORE_URL and SHOPIFY_ACCESS_TOKEN to your .env file."
+        if e.response.status_code == 401:
+            return "Shopify credentials invalid. Check your SHOPIFY_ACCESS_TOKEN."
+        raise
+    return (
+        f"✅ Shopify connected\n"
+        f"  Shop:     {data['shop_name']} ({data['shop_domain']})\n"
+        f"  Plan:     {data['plan']}\n"
+        f"  Currency: {data['currency']}"
+    )
+
+
+@mcp.tool()
+async def shopify_list_products(
+    limit: int = 20,
+    status: str = "active",
+    title: Optional[str] = None,
+) -> str:
+    """
+    List products from your connected Shopify store.
+
+    Args:
+        limit:  Number of products to return (max 250, default 20).
+        status: Product status filter — active | draft | archived (default active).
+        title:  Optional title substring filter.
+    """
+    qs = f"?limit={limit}&status={status}"
+    if title:
+        qs += f"&title={title}"
+    try:
+        products = await _get(f"/shopify/products{qs}")
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 503:
+            return "Shopify not configured. Set SHOPIFY_STORE_URL and SHOPIFY_ACCESS_TOKEN in .env."
+        raise
+
+    if not products:
+        return "No products found matching those filters."
+
+    lines = [f"{len(products)} product(s):\n"]
+    for p in products:
+        price = f"  price:  {p['price']}" if p.get("price") else ""
+        lines += [
+            f"[{p['status'].upper()}] {p['title']}",
+            f"  id:     {p['id']}",
+            f"  vendor: {p.get('vendor') or '—'}",
+            f"  type:   {p.get('product_type') or '—'}",
+            price,
+            "",
+        ]
+    lines.append("Use shopify_remix_product(product_id=<id>) to generate social posts for any product.")
+    return "\n".join(x for x in lines if x is not None)
+
+
+@mcp.tool()
+async def shopify_remix_product(
+    product_id: int,
+    platforms: list[str] = ["facebook", "instagram", "tiktok", "linkedin", "twitter", "youtube_shorts"],
+    extra_context: Optional[str] = None,
+) -> str:
+    """
+    Generate platform-tailored social media drafts for a Shopify product.
+
+    Uses your store's product data (title, description, price, tags) combined
+    with your brand voice to write promotional posts for each platform.
+
+    Args:
+        product_id:    Shopify product ID (get it from shopify_list_products).
+        platforms:     Which platforms to generate for. Defaults to all 6.
+        extra_context: Optional extra context for the AI, e.g. "launching next week"
+                       or "highlight the new colour options".
+    """
+    body = {"product_id": product_id, "platforms": platforms}
+    if extra_context:
+        body["extra_context"] = extra_context
+
+    try:
+        result = await _post("/shopify/remix", body)
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 503:
+            return "Shopify not configured. Set SHOPIFY_STORE_URL and SHOPIFY_ACCESS_TOKEN in .env."
+        if e.response.status_code == 404:
+            return f"Product {product_id} not found in your Shopify store."
+        raise
+
+    return _format_bundle(result)
 
 
 # ── Entry point ────────────────────────────────────────────────────────────────
